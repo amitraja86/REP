@@ -22,12 +22,13 @@ class QuestionsMaster(Base):
     position_id =Column(String(255),nullable=False)
     client_id =Column(String(255),nullable=False)
     End_Client=Column(String(255),nullable=True)
-    Positions=Column(Integer,nullable=True)
-    Location=Column(String(255),nullable=True)
-    Source_type=Column(String(255),nullable=True)
+    Positions=Column(Integer,nullable=True,default=0)
+    Location=Column(String(255),nullable=True,default="Remote")
+    Source_type=Column(String(255),nullable=True,default="By Client")
+    Country=Column(String(255),nullable=True,default="Unknown")
     Interview_Panel=Column(JSON, default=[], nullable=False)
     Interview_starttime=Column(DateTime, nullable=False, default=get_current_time)
-    Interview_stoptime=Column(DateTime, nullable=False, default=lambda: get_current_time() + timedelta(seconds=40))
+    Interview_stoptime=Column(DateTime, nullable=False, default=lambda: get_current_time() + timedelta(minutes=40))
     Round=Column(Integer,default=1,nullable=True)
     Status=Column(String(255),nullable=False)
     question = Column(Text, nullable=False)
@@ -54,7 +55,7 @@ class QuestionsMaster(Base):
     #     return results
     
     @classmethod
-    def get_question(cls,db:Session,client_id:str,position_id:str,panel_name:str):
+    def get_question(cls,db:Session,client_id:str,position_id:str,panel_name:str,candidate:str):
         query = db.query(cls)
         if client_id:
             query = query.filter(cls.client_id == client_id)
@@ -62,6 +63,8 @@ class QuestionsMaster(Base):
             query = query.filter(cls.position_id == position_id)
         if panel_name :
             query = query.filter(cls.Interview_Panel.ilike(f"%{panel_name}%"))
+        if candidate:
+            query=query.filter(cls.Candidate_name==candidate)
 
 
         query = query.order_by(cls.Interview_starttime.desc())

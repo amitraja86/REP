@@ -38,7 +38,7 @@ def parse_functional_questions_from_new_csv(csv_file):
                 "Source_type":row["Source type"],
                 "Interview_Panel":row["Interview Panel"],
                 "Interview_start_time":row["INTERVIEW_START_DATE_TIME"],
-                "Interview_stop_time":row["INTERVIEW_END_DATE_TIME"],
+                "duration":row["duration"],
                 "Round":row["Round"],
                 "Status":row["Status"],
             }

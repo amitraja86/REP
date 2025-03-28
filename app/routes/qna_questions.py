@@ -10,7 +10,10 @@ from app.model.client import Client
 from app.model.postion import Position
 from app.model.question_master import QuestionsMaster
 from app.model.user import User
-
+from app.model.panel import Panel
+import uuid
+import re
+import pymysql
 from app.database import *
 from app.utils.helper_functions import *
 from app.utils.oauth import *
@@ -25,7 +28,7 @@ def get_all_ques(company_name:Optional[str]=None,position:Optional[str]=None,pan
         with DBFactory() as db:
             client_id=Client.get_id(company_name,db)
             position_id=Position.get_id(position,db)
-            data= get_ques_byfilter(client_id,position_id,panel_name)
+            data= get_ques_byfilter(client_id.ID,position_id.ID,panel_name)
             filename=""
             if company_name:
                 filename+=company_name
@@ -81,14 +84,37 @@ def get_all_ques(company_name:Optional[str]=None,position:Optional[str]=None,pan
 
 
 @router.get("/question/", status_code=status.HTTP_200_OK)
-def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=None,panel_name:Optional[str]=None,current_user: int = Depends(get_current_user)):
+def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=None,panel_name:Optional[str]=None, candidate :Optional[str]=None,current_user: int = Depends(get_current_user)):
 
     try:
         with DBFactory() as db:
-            client_id=Client.get_id(company_name,db)
+            # client_id=None
+            # position_id=None
+            # if company_name:
+            #     client_id= Client.get_id(company_name,db)
+            #     if client_id:
+            #         client_id=client_id.ID
+            # if position:
+            #     position_id=Position.get_id(position,db)
+            #     if position_id:
+            #         position_id=position_id.ID
+            
+            client_id= Client.get_id(company_name,db)
+            if client_id:
+                client_id=client_id.ID
+
             position_id=Position.get_id(position,db)
-            questions =QuestionsMaster.get_question(db,client_id,position_id,panel_name)
+            if position_id:
+                position_id=position_id.ID
+
+            candidate_info = Candidate.get_candidate_by_id(db,candidate) or Candidate.get_candidate_by_name(db,candidate)
+            if candidate_info:
+                candidate_name=candidate_info.NAME
+            else:
+                candidate_name=None
+            questions =QuestionsMaster.get_question(db,client_id,position_id,panel_name,candidate_name)
             return_data=[]
+
             for question in questions:
                 client_name = Client.get_name(question.client_id,db)
                 position_name = Position.get_name(question.position_id,db)
@@ -100,6 +126,7 @@ def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=Non
                 "No_of_position":question.Positions,
                 "Location":question.Location,
                 "Source_type":question.Source_type,
+                "Country":question.Country,
                 "Interview_Panel":question.Interview_Panel,
                 "Interview_starttime":question.Interview_starttime,
                 "Interview_stoptime":question.Interview_stoptime,
@@ -127,43 +154,81 @@ def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=Non
 @router.post(
     "/add_questions/", status_code=status.HTTP_201_CREATED
 )
-def add_question(questions: Question,question_file:UploadFile=File(None),current_user: int = Depends(get_current_user)):
+def add_question(questions: Question,current_user: int = Depends(get_current_user)):
     try:
         with DBFactory() as db:
             # print(questions)
             client_id=Client.get_id(questions.L1_Client,db)
             position_id=Position.get_id(questions.designation,db)
+            candidate_info =Candidate.get_candidate_by_name(db,questions.Candidate_name) or None
             if client_id is None:
-                print(questions.L1_Client)
+                # print(questions.L1_Client)
                 Client.create_client(db,NAME=questions.L1_Client)
             if position_id is None:
-                print(questions.designation)
+                # print(questions.designation)
                 Position.create_position(db,NAME=questions.designation)
+            # print(questions)
+            # if candidate_info is None:
+            #     Candidate.create_candidate(db,NAME=questions.Candidate_name)
             client_id=Client.get_id(questions.L1_Client,db)
             position_id=Position.get_id(questions.designation,db)
+            # print(timedelta(minutes=questions.duration))
+            interview_start_time = datetime.strptime(questions.Interview_start_time, "%d-%m-%Y %H:%M")
+            Interview_stop_time = interview_start_time + timedelta(minutes=questions.duration)
+            interview_start_time=interview_start_time.strftime("%Y-%m-%d %H:%M")
+            Interview_stop_time=Interview_stop_time.strftime("%Y-%m-%d %H:%M")
+
+            if questions.Location =="string" or questions.Location=="":
+                location="Remote"
+            else:
+                location=questions.Location
+            
+            if questions.Source_type=="string" or questions.Source_type=="":
+                source_type="By client" 
+            else:
+                source_type=questions.Source_type
+
+            if questions.Country=="string" or questions.Country=="":
+                country="Unkown"
+            else:
+                country=questions.Country
+            panel_name=re.split(r',\s*', questions.Interview_Panel) if ',' in questions.Interview_Panel else [questions.Interview_Panel]
+
+            new_id = str(uuid.uuid4())
             ques ={
+            "ID": new_id,
             "Candidate_name": questions.Candidate_name,
             "End_Client":questions.End_Client,
             "Positions":questions.Positions,
-            "Location":questions.Location,
-            "Source_type":questions.Source_type,
-            "Interview_Panel":questions.Interview_Panel,
-            "Interview_starttime":questions.Interview_start_time,
-            "Interview_stoptime":questions.Interview_stop_time,
+            "Location":location,
+            "Source_type":source_type,
+            "Interview_Panel":panel_name,
+            "Interview_starttime":interview_start_time,
+            "Interview_stoptime":Interview_stop_time,
             "Round":questions.Round,
             "Status":questions.Status,
             "question": questions.question,
             "position_id":position_id.ID,
             "client_id":client_id.ID,
+            "Country":country,
             }
-            QuestionsMaster.create_question(
-                    db,**ques
-                )
+            
+            # Try inserting into the database
+            try:
+                QuestionsMaster.create_question(db, **ques)
+                return {"message": "Question added successfully"}
+            
+            except pymysql.err.IntegrityError as e:
+                # Handle duplicate entry error by generating a new ID
+                if "Duplicate entry" in str(e):
+                    new_id = str(uuid.uuid4())  # Generate another new UUID
+                    ques["ID"] = new_id
+                    QuestionsMaster.create_question(db, **ques)
+                    return {"message": "Duplicate found. New question added successfully."}
+                else:
+                    raise e  # Raise other IntegrityErrors
         
         
-            return {
-                    "message": "Question added successfully",
-                }
     
     except HTTPException as error:
         raise error
@@ -196,26 +261,70 @@ def add_questions_from_csv(csv_file:UploadFile=File(...),current_user: int = Dep
                     Position.create_position(db,NAME=question_details["designation"])
                 client_id=Client.get_id(question_details["L1_Client"],db)
                 position_id=Position.get_id(question_details["designation"],db)
+                
+                
+                # client_id=Client.get_id(questions.L1_Client,db)
+                # position_id=Position.get_id(questions.designation,db)
+                candidate_info =Candidate.get_candidate_by_name(db,question_details["Candidate_name"]) or None
+                # if client_id is None:
+                #     # print(questions.L1_Client)
+                #     Client.create_client(db,NAME=question_details["L1_Client"])
+                # if position_id is None:
+                #     # print(question_details.designation)
+                #     Position.create_position(db,NAME=question_details["designation"])
+                # print(question_details)
+                # if candidate_info is None:
+                #     Candidate.create_candidate(db,NAME=question_details["Candidate_name"])
+                # client_id=Client.get_id(question_details["L1_Client"],db)
+                # position_id=Position.get_id(question_details["designation"],db)
+                # print(timedelta(minutes=question_details.duration))
+                interview_start_time = datetime.strptime(question_details["Interview_start_time"], "%d-%m-%Y %H:%M")
+                Interview_stop_time = interview_start_time + timedelta(minutes=question_details["duration"])
+                interview_start_time=interview_start_time.strftime("%Y-%m-%d %H:%M")
+                Interview_stop_time=Interview_stop_time.strftime("%Y-%m-%d %H:%M")
+
+                if question_details["Location"] =="string" or question_details["Location"]=="":
+                    location="Remote"
+                else:
+                    location=question_details["Location"]
+                
+                if question_details["Source_type"]=="string" or question_details["Source_type"]=="":
+                    source_type="By client" 
+                else:
+                    source_type=question_details["Source_type"]
+
+                panel_name=re.split(r',\s*', question_details["Interview_Panel"]) if ',' in question_details["Interview_Panel"] else [question_details["Interview_Panel"]]
+                new_id = str(uuid.uuid4())
                 ques ={
+                "ID": new_id,
                 "Candidate_name": question_details["Candidate_name"],
                 "End_Client":question_details["End_Client"],
                 "Positions":question_details["Positions"],
-                "Location":question_details["Location"],
-                "Source_type":question_details["Source_type"],
-                "Interview_Panel":question_details["Interview_Panel"],
-                "Interview_starttime":question_details["Interview_start_time"],
-                "Interview_stoptime":question_details["Interview_stop_time"],
+                "Location":location,
+                "Source_type":source_type,
+                "Interview_Panel":panel_name,
+                "Interview_starttime":interview_start_time,
+                "Interview_stoptime":Interview_stop_time,
                 "Round":question_details["Round"],
                 "Status":question_details["Status"],
                 "question": question_details["question"],
                 "position_id":position_id.ID,
                 "client_id":client_id.ID,
                 }
-                QuestionsMaster.create_question(
-                        db,**ques
-                    )
+                try:
+                    QuestionsMaster.create_question(db, **ques)
+                
+                except pymysql.err.IntegrityError as e:
+                    # Handle duplicate entry error by generating a new ID
+                    if "Duplicate entry" in str(e):
+                        new_id = str(uuid.uuid4())  # Generate another new UUID
+                        ques["ID"] = new_id
+                        QuestionsMaster.create_question(db, **ques)
+                        # return {"message": "Duplicate found. New question added successfully."}
+                    else:
+                        raise e  # Raise other IntegrityErrors
             return {
-                        "message": "Question added successfully",
+                        "message": "Questions added successfully",
                     }
     
     except HTTPException as error:
@@ -264,6 +373,25 @@ def get_company():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
         ) from error
     
+@router.get("/panels/", status_code=status.HTTP_200_OK)
+def get_panel():
+    try:
+        with DBFactory() as db:
+            panel_infos =Panel.get_panel(db)
+            panel_list =[]
+            for panel in panel_infos:
+                panel_list.append(panel.Name)
+            return panel_list
+    except HTTPException as error:
+        raise error
+
+    # Step 7: Handle unexpected errors
+    except Exception as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
+        ) from error
+    
+
 @router.post("/candidate/add", status_code=status.HTTP_201_CREATED)
 def add_candidate(candidate :CandidateCreate,current_user: int = Depends(get_current_user)):
     try:

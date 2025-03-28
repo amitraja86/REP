@@ -38,7 +38,7 @@ def create_user(user: UserCreate):
 
 
 
-@router.post('/login/', response_model=Token, status_code=status.HTTP_200_OK)
+@router.get('/login/', response_model=Token, status_code=status.HTTP_200_OK)
 def login(email:str,password:str):
     try:
         with DBFactory() as db:

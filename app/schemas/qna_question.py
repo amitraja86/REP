@@ -14,11 +14,12 @@ class Question(BaseModel):
     L1_Client:str
     End_Client:str
     Positions:int
-    Location:str
-    Source_type:str
-    Interview_Panel:list
+    Location:Optional[str]=None
+    Source_type:Optional[str]=None
+    Country:str
+    Interview_Panel:str
     Interview_start_time:str
-    Interview_stop_time :str
+    duration :int
     Round:int
     Status:str
 

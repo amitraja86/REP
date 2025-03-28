@@ -40,4 +40,4 @@ class Candidate(Base):
     
     @classmethod
     def get_candidate_by_name(cls,db:Session,name):
-        return db.query(cls).filter(cls.NAME.ilike(f"%{name}%")).first()
+        return db.query(cls).filter(cls.NAME==name).first()

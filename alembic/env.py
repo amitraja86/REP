@@ -46,6 +46,7 @@ from app.model.client import Client
 from app.model.postion import Position
 from app.model.question_master import QuestionsMaster
 from app.model.user import User
+from app.model.panel import Panel
  
 target_metadata = Base.metadata
 
