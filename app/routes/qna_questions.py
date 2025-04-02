@@ -1,6 +1,6 @@
 import csv
 import io
-from fastapi import APIRouter, HTTPException, status, Body, Query,Depends ,Response,UploadFile, File
+from fastapi import APIRouter, HTTPException, status, Body, Query,Depends ,Response,UploadFile, File,Form
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from app.schemas.qna_question import Question
@@ -154,7 +154,7 @@ def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=Non
 @router.post(
     "/add_questions/", status_code=status.HTTP_201_CREATED
 )
-def add_question(questions: Question,current_user: int = Depends(get_current_user)):
+async def add_question(questions: Question,csv_file:UploadFile=File(None),current_user: int = Depends(get_current_user)):
     try:
         with DBFactory() as db:
             # print(questions)
@@ -194,6 +194,28 @@ def add_question(questions: Question,current_user: int = Depends(get_current_use
                 country=questions.Country
             panel_name=re.split(r',\s*', questions.Interview_Panel) if ',' in questions.Interview_Panel else [questions.Interview_Panel]
 
+
+            ques=""
+            if csv_file:
+                if not is_csv(csv_file.content_type):
+                    raise HTTPException(
+                        status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                        detail="Only csv files are supported.",
+                    )
+                else:
+                    csv_data = parse_csv(csv_file)
+                    for question_details in csv_data:
+                        # print(question_details)
+                        if question_details["question"] =="":
+                            break
+                        ques=question_details["question"]
+
+            # print(ques)
+            if questions.question=="string" or questions.question=="":
+                question=ques
+            else:
+                question=questions.question
+            # question=questions.question or ques
             new_id = str(uuid.uuid4())
             ques ={
             "ID": new_id,
@@ -207,7 +229,7 @@ def add_question(questions: Question,current_user: int = Depends(get_current_use
             "Interview_stoptime":Interview_stop_time,
             "Round":questions.Round,
             "Status":questions.Status,
-            "question": questions.question,
+            "question": question,
             "position_id":position_id.ID,
             "client_id":client_id.ID,
             "Country":country,

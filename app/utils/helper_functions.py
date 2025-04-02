@@ -47,6 +47,29 @@ def parse_functional_questions_from_new_csv(csv_file):
         return csv_data 
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error parsing the csv file {str(e)}")
+    
+
+def parse_csv(csv_file):
+    try:
+        csv_data = []
+
+        # Read the csv file
+        df = pd.read_csv(csv_file.file, encoding='utf-8')
+
+        # Replace NaN values with empty strings
+        df.fillna("", inplace=True)
+        
+        # extracting details from the csv
+        for index, row in df.iterrows():
+
+            data = {
+                "question":row["Question"],
+            }
+            csv_data.append(data)
+            
+        return csv_data 
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error parsing the csv file {str(e)}")
 
 from passlib.context import CryptContext
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

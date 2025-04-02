@@ -1,6 +1,7 @@
-from pydantic import BaseModel,EmailStr
+from pydantic import BaseModel,EmailStr,model_validator
 from datetime import datetime
 from typing import Optional
+import json
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -8,7 +9,7 @@ class UserCreate(BaseModel):
     password: str
 
 class Question(BaseModel):
-    question: str
+    question: Optional[str]=None
     Candidate_name:str
     designation:str
     L1_Client:str
@@ -22,7 +23,13 @@ class Question(BaseModel):
     duration :int
     Round:Optional[int]=None
     Status:str
-
+    @model_validator(mode="before")
+    @classmethod
+    def validate_to_json(cls, value):
+        if isinstance(value, str):
+            return cls(**json.loads(value))
+        return value
+    
 class UserOut(BaseModel):
     id: int
     email: EmailStr
