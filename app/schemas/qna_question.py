@@ -13,14 +13,14 @@ class Question(BaseModel):
     designation:str
     L1_Client:str
     End_Client:str
-    Positions:int
+    Positions:Optional[int]=None
     Location:Optional[str]=None
     Source_type:Optional[str]=None
     Country:str
     Interview_Panel:str
     Interview_start_time:str
     duration :int
-    Round:int
+    Round:Optional[int]=None
     Status:str
 
 class UserOut(BaseModel):

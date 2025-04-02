@@ -84,7 +84,7 @@ def get_all_ques(company_name:Optional[str]=None,position:Optional[str]=None,pan
 
 
 @router.get("/question/", status_code=status.HTTP_200_OK)
-def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=None,panel_name:Optional[str]=None, candidate :Optional[str]=None,current_user: int = Depends(get_current_user)):
+def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=None,panel_name:Optional[str]=None, current_user: int = Depends(get_current_user)):
 
     try:
         with DBFactory() as db:
@@ -98,7 +98,7 @@ def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=Non
             #     position_id=Position.get_id(position,db)
             #     if position_id:
             #         position_id=position_id.ID
-            
+            candidate=None
             client_id= Client.get_id(company_name,db)
             if client_id:
                 client_id=client_id.ID

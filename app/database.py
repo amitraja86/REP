@@ -48,7 +48,7 @@ def get_db() -> Session:
     ssh_tunnel.start()
 
     SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}@localhost:{ssh_tunnel.local_bind_port}/{settings.DB_NAME}"
-    # print(SQLALCHEMY_DATABASE_URL)
+    print(SQLALCHEMY_DATABASE_URL)
 
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
