@@ -21,7 +21,8 @@ class RegexCORSMiddleware(CORSMiddleware):
 allowed_origins = [
     "http://localhost:8000",
     "http://localhost:5173",
-    # "http://localhost:5174",
+    "http://localhost:3000",
+    "http://192.168.0.113:3000",
 ]
 
 app.add_middleware(
