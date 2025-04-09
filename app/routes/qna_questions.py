@@ -154,7 +154,7 @@ def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=Non
 @router.post(
     "/add_questions/", status_code=status.HTTP_201_CREATED
 )
-async def add_question(questions: Question,csv_file:UploadFile=File(None),current_user: int = Depends(get_current_user)):
+async def add_question(questions: Question,current_user: int = Depends(get_current_user)):
     try:
         with DBFactory() as db:
             # print(questions)
@@ -196,19 +196,19 @@ async def add_question(questions: Question,csv_file:UploadFile=File(None),curren
 
 
             ques=""
-            if csv_file:
-                if not is_csv(csv_file.content_type):
-                    raise HTTPException(
-                        status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                        detail="Only csv files are supported.",
-                    )
-                else:
-                    csv_data = parse_csv(csv_file)
-                    for question_details in csv_data:
-                        # print(question_details)
-                        if question_details["question"] =="":
-                            break
-                        ques=question_details["question"]
+            # if csv_file:
+            #     if not is_csv(csv_file.content_type):
+            #         raise HTTPException(
+            #             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            #             detail="Only csv files are supported.",
+            #         )
+            #     else:
+            #         csv_data = parse_csv(csv_file)
+            #         for question_details in csv_data:
+            #             # print(question_details)
+            #             if question_details["question"] =="":
+            #                 break
+            #             ques=question_details["question"]
 
             # print(ques)
             if questions.question=="string" or questions.question=="":
