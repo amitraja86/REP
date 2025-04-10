@@ -100,9 +100,10 @@ def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=Non
             #         position_id=position_id.ID
             candidate=None
             client_id= Client.get_id(company_name,db)
+            # print(client_id)
             if client_id:
                 client_id=client_id.ID
-
+            # print(client_id)
             position_id=Position.get_id(position,db)
             if position_id:
                 position_id=position_id.ID
@@ -114,10 +115,14 @@ def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=Non
                 candidate_name=None
             questions =QuestionsMaster.get_question(db,client_id,position_id,panel_name,candidate_name)
             return_data=[]
-
+            # print(questions)
             for question in questions:
                 client_name = Client.get_name(question.client_id,db)
                 position_name = Position.get_name(question.position_id,db)
+                # print(position_name)
+                # print(question.__dict__)
+                # print(question.Candidate_name)
+                # print(question.)
                 data={
                 "Candidate_name": question.Candidate_name,
                 "L1_Client":client_name.NAME,
@@ -135,7 +140,7 @@ def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=Non
                 "question": question.question,
                 }
                 return_data.append(data)
-            
+            # print(return_data)
             return {
                     "message": "Questions retrieved successfully",
                     "details" :return_data
@@ -193,7 +198,10 @@ async def add_question(questions: Question,current_user: int = Depends(get_curre
             else:
                 country=questions.Country
             panel_name=re.split(r',\s*', questions.Interview_Panel) if ',' in questions.Interview_Panel else [questions.Interview_Panel]
-
+            for panel in panel_name:
+                panel_info=Panel.get_id(panel,db)
+                if panel_info is None:
+                    Panel.create_panel(db,Name=panel)
 
             ques=""
             # if csv_file:
@@ -316,6 +324,10 @@ def add_questions_from_csv(csv_file:UploadFile=File(...),current_user: int = Dep
                     source_type=question_details["Source_type"]
 
                 panel_name=re.split(r',\s*', question_details["Interview_Panel"]) if ',' in question_details["Interview_Panel"] else [question_details["Interview_Panel"]]
+                for panel in panel_name:
+                    panel_info=Panel.get_id(panel,db)
+                    if panel_info is None:
+                        Panel.create_panel(db,Name=panel)
                 new_id = str(uuid.uuid4())
                 ques ={
                 "ID": new_id,

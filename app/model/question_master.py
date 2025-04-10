@@ -19,8 +19,8 @@ class QuestionsMaster(Base):
         nullable=False,
     )
     Candidate_name = Column(String(255),nullable=False)
-    position_id =Column(String(255),nullable=False)
-    client_id =Column(String(255),nullable=False)
+    position_id =Column(String(255), ForeignKey("POSITION_MASTER.ID", ondelete = "CASCADE"),nullable=False)
+    client_id =Column(String(255), ForeignKey("CLIENT_MASTER.ID", ondelete = "CASCADE"),nullable=False)
     End_Client=Column(String(255),nullable=True)
     Positions=Column(Integer,nullable=True,default=0)
     Location=Column(String(255),nullable=True,default="Remote")

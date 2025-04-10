@@ -23,7 +23,7 @@ class Panel(Base):
         self.ID = self.ID or str(uuid.uuid4())
 
     @classmethod
-    def create_client(cls,db:Session,**kwargs):
+    def create_panel(cls,db:Session,**kwargs):
         new_response = cls(**kwargs)
         db.add(new_response)
         db.commit()
