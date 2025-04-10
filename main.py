@@ -35,5 +35,5 @@ app.add_middleware(
 
 
 # Include API routers
-app.include_router(qna_questions.router)
-app.include_router(auth_router.router,prefix="/user")
+app.include_router(qna_questions.router,prefix="/api")
+app.include_router(auth_router.router,prefix="/api/user")
