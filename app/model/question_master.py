@@ -39,9 +39,13 @@ class QuestionsMaster(Base):
     def get_all_questions(cls, db:Session):
         return db.query(cls).all()
 
-    # @classmethod
-    # def get_question_by_id(cls, db: Session, question_id: str):
-    #     return db.query(cls).filter(cls.id == question_id).first()
+    @classmethod
+    def get_question_by_client(cls,db:Session,client_id:str):
+        return db.query(cls).filter(cls.client_id == client_id).all()
+    
+    @classmethod
+    def get_question_by_id(cls,db:Session,id:str):
+        return db.query(cls).filter(cls.ID == id).first()
     
     # @classmethod
     # def get_question_by_panel(cls,db:Session,panel_name:str):

@@ -371,14 +371,29 @@ def add_questions_from_csv(csv_file:UploadFile=File(...),current_user: int = Dep
         ) from error
     
 @router.get("/positions/", status_code=status.HTTP_200_OK)
-def get_position():
+async def get_position():
+
+# async def get_position(client_name :Optional[str]=None):
     try:
         with DBFactory() as db:
-            position_infos =Position.get_all(db)
-            position_list =[]
-            for position in position_infos:
-                position_list.append(position.NAME)
-            return position_list
+            client_name =None
+            if client_name is None:
+                position_infos =Position.get_all(db)
+                position_list =[]
+                for position in position_infos:
+                    # position_name = Position.get_name(position.position_id,db)
+                    if position.NAME not in position_list:
+                        position_list.append(position.NAME)
+                return position_list
+            else:
+                client=Client.get_id(client_name,db)
+                position_infos= QuestionsMaster.get_question_by_client(db,client.ID)
+                position_list =[]
+                for position in position_infos:
+                    position_name = Position.get_name(position.position_id,db)
+                    if position_name.NAME not in position_list:
+                        position_list.append(position_name.NAME)
+                return position_list
     except HTTPException as error:
         raise error
 
@@ -389,15 +404,28 @@ def get_position():
         ) from error
 
 @router.get("/company/", status_code=status.HTTP_200_OK)
-def get_company():
+async def get_company():
     try:
         with DBFactory() as db:    
             client_infos= Client.get_clients(db)
             client_list=[]
+            client_dict={}
             for client in client_infos:
+                question_info= QuestionsMaster.get_question_by_client(db,client.ID)
+                position_list =[]
+                for position in question_info:
+                    position_name = Position.get_name(position.position_id,db)
+                    if position_name.NAME not in position_list:
+                        position_list.append(position_name.NAME)
+                panel_list =[]
+                for panel in question_info:
+                    panel_list.extend(panel.Interview_Panel)
+                panel_list=list(set(panel_list))
+                position_list=list(set(position_list))
+                client_dict[client.NAME]=[position_list],[panel_list]
                 client_list.append(client.NAME)
 
-            return client_list
+            return client_dict
     except HTTPException as error:
         raise error
 
@@ -408,14 +436,25 @@ def get_company():
         ) from error
     
 @router.get("/panels/", status_code=status.HTTP_200_OK)
-def get_panel():
+async def get_panel():
     try:
         with DBFactory() as db:
-            panel_infos =Panel.get_panel(db)
-            panel_list =[]
-            for panel in panel_infos:
-                panel_list.append(panel.Name)
-            return panel_list
+            client_name=None
+            if client_name is None:
+                panel_infos =Panel.get_panel(db)
+                panel_list =[]
+                for panel in panel_infos:
+                    panel_list.append(panel.Name)
+                return panel_list
+            else:
+                client=Client.get_id(client_name,db)
+                questions = QuestionsMaster.get_question_by_client(db,client.ID)
+                # panel_infos=Panel.get_panel_by_client_id(client.ID,db)
+                
+                panel_list =[]
+                for panel in questions:
+                    panel_list.extend(panel.Interview_Panel)
+                return panel_list
     except HTTPException as error:
         raise error
 
@@ -424,7 +463,6 @@ def get_panel():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
         ) from error
-    
 
 @router.post("/candidate/add", status_code=status.HTTP_201_CREATED)
 def add_candidate(candidate :CandidateCreate,current_user: int = Depends(get_current_user)):
