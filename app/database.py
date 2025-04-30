@@ -14,69 +14,39 @@ SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 Base = declarative_base()
 
 
-# class DBSession:
-#     def __init__(self):
-#         engine = create_engine(
-#             SQLALCHEMY_DATABASE_URL,
-#             poolclass=pool.QueuePool,
-#             pool_size=10000,
-#             max_overflow=8000,
-#         )
-#         SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-#         self.db = SessionLocal()
-
-#     def __enter__(self):
-#         return self.db
-
-#     def __exit__(self, exc_type, exc_val, exc_tb):
-#         self.db.close()
-
-
-# def get_db():
-#     with DBSession() as db:
-#         yield db
-
-
 def get_db() -> Session:
     ssh_tunnel = SSHTunnelForwarder(
-    (settings.SSH_HOST, settings.SSH_PORT),
-    ssh_username=settings.SSH_USER,
-    ssh_password=settings.SSH_KEY,  # Use a private key file if required
-    remote_bind_address=(settings.DB_HOST, settings.DB_PORT),
+        (settings.SSH_HOST, settings.SSH_PORT),
+        ssh_username=settings.SSH_USER,
+        ssh_password=settings.SSH_KEY,  # or private key
+        remote_bind_address=(settings.DB_HOST, settings.DB_PORT),
     )
-    # ssh_tunnel.stop() 
     ssh_tunnel.start()
 
     SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}@localhost:{ssh_tunnel.local_bind_port}/{settings.DB_NAME}"
-    print(SQLALCHEMY_DATABASE_URL)
-
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
         poolclass=QueuePool,
-        pool_size=10000,
-        max_overflow=8000,
-        # pool_recycle=3600
+        pool_size=10,
+        max_overflow=20,
+        pool_recycle=280,
+        pool_pre_ping=True
     )
-    
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    engine.connect()
+
     db = SessionLocal()
-    
     try:
-        return db
+        yield db
     finally:
         db.close()
+        ssh_tunnel.stop()
         
-
-
 class DBFactory:
-    def __init__(self):
-        self.db = None
-
     def __enter__(self):
-        self.db = get_db()
+        self.db_gen = get_db()
+        self.db = next(self.db_gen)
         return self.db
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.db:
-            self.db.close()
+        if hasattr(self, "db_gen"):
+            self.db_gen.close()
