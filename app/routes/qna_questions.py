@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from app.schemas.qna_question import Question
 from app.model.qna_ques import Questions
-from app.model.candidate import Candidate
+# from app.model.candidate import Candidate
 from app.model.client import Client
 from app.model.postion import Position
 from app.model.question_master import QuestionsMaster
@@ -108,11 +108,11 @@ def get_ques_byfilter(company_name:Optional[str]=None,position:Optional[str]=Non
             if position_id:
                 position_id=position_id.ID
 
-            candidate_info = Candidate.get_candidate_by_id(db,candidate) or Candidate.get_candidate_by_name(db,candidate)
-            if candidate_info:
-                candidate_name=candidate_info.NAME
-            else:
-                candidate_name=None
+            # candidate_info = Candidate.get_candidate_by_id(db,candidate) or Candidate.get_candidate_by_name(db,candidate)
+            # if candidate_info:
+            #     candidate_name=candidate_info.NAME
+            # else:
+            candidate_name=None
             questions =QuestionsMaster.get_question(db,client_id,position_id,panel_name,candidate_name)
             return_data=[]
             # print(questions)
@@ -165,7 +165,7 @@ async def add_question(questions: Question,current_user: int = Depends(get_curre
             # print(questions)
             client_id=Client.get_id(questions.L1_Client,db)
             position_id=Position.get_id(questions.designation,db)
-            candidate_info =Candidate.get_candidate_by_name(db,questions.Candidate_name) or None
+            # candidate_info =Candidate.get_candidate_by_name(db,questions.Candidate_name) or None
             if client_id is None:
                 # print(questions.L1_Client)
                 Client.create_client(db,NAME=questions.L1_Client)
@@ -295,7 +295,7 @@ def add_questions_from_csv(csv_file:UploadFile=File(...),current_user: int = Dep
                 
                 # client_id=Client.get_id(questions.L1_Client,db)
                 # position_id=Position.get_id(questions.designation,db)
-                candidate_info =Candidate.get_candidate_by_name(db,question_details["Candidate_name"]) or None
+                # candidate_info =Candidate.get_candidate_by_name(db,question_details["Candidate_name"]) or None
                 # if client_id is None:
                 #     # print(questions.L1_Client)
                 #     Client.create_client(db,NAME=question_details["L1_Client"])
@@ -464,57 +464,57 @@ async def get_panel():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
         ) from error
 
-@router.post("/candidate/add", status_code=status.HTTP_201_CREATED)
-def add_candidate(candidate :CandidateCreate,current_user: int = Depends(get_current_user)):
-    try:
-        with DBFactory() as db:
-            existing_candidate=Candidate.get_candidate_by_id(db,candidate.ID) or None
-            if existing_candidate:
-                raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST, 
-                        detail="ID belong to other Candidate"
-                    )
-            Candidate.create_candidate(db,**candidate.model_dump())
+# @router.post("/candidate/add", status_code=status.HTTP_201_CREATED)
+# def add_candidate(candidate :CandidateCreate,current_user: int = Depends(get_current_user)):
+#     try:
+#         with DBFactory() as db:
+#             existing_candidate=Candidate.get_candidate_by_id(db,candidate.ID) or None
+#             if existing_candidate:
+#                 raise HTTPException(
+#                         status_code=status.HTTP_400_BAD_REQUEST, 
+#                         detail="ID belong to other Candidate"
+#                     )
+#             Candidate.create_candidate(db,**candidate.model_dump())
     
     
-            return {"details":"Successfully candidate created"}
-    except HTTPException as error:
-        raise error
+#             return {"details":"Successfully candidate created"}
+#     except HTTPException as error:
+#         raise error
 
-    # Step 7: Handle unexpected errors
-    except Exception as error:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
-        ) from error
+#     # Step 7: Handle unexpected errors
+#     except Exception as error:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
+#         ) from error
 
-@router.get("/candidate/search", status_code=status.HTTP_200_OK)
-def search_candidate(name : Optional[str]=None,id :Optional[str]=None,current_user: int = Depends(get_current_user)):
-    try:
-        with DBFactory() as db:
-            by_name,by_id=None,None
-            if name:
-                by_name=Candidate.get_candidate_by_name(db,name) 
-            by_id=None
-            if id:
-                by_id=Candidate.get_candidate_by_id(db,id) 
-            if by_id and by_name:
-                if by_id.NAME !=by_name.NAME:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST, 
-                        detail="ID doesn't belong to given Candidate"
-                    )
-            elif by_id is None or by_name is None:
-                raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST, 
-                        detail="ID and NAME doesn't match"
-                    )
-            name=by_id.NAME or by_name.NAME
-            return name    
-    except HTTPException as error:
-        raise error
+# @router.get("/candidate/search", status_code=status.HTTP_200_OK)
+# def search_candidate(name : Optional[str]=None,id :Optional[str]=None,current_user: int = Depends(get_current_user)):
+#     try:
+#         with DBFactory() as db:
+#             by_name,by_id=None,None
+#             if name:
+#                 by_name=Candidate.get_candidate_by_name(db,name) 
+#             by_id=None
+#             if id:
+#                 by_id=Candidate.get_candidate_by_id(db,id) 
+#             if by_id and by_name:
+#                 if by_id.NAME !=by_name.NAME:
+#                     raise HTTPException(
+#                         status_code=status.HTTP_400_BAD_REQUEST, 
+#                         detail="ID doesn't belong to given Candidate"
+#                     )
+#             elif by_id is None or by_name is None:
+#                 raise HTTPException(
+#                         status_code=status.HTTP_400_BAD_REQUEST, 
+#                         detail="ID and NAME doesn't match"
+#                     )
+#             name=by_id.NAME or by_name.NAME
+#             return name    
+#     except HTTPException as error:
+#         raise error
 
-    # Step 7: Handle unexpected errors
-    except Exception as error:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
-        ) from error
+#     # Step 7: Handle unexpected errors
+#     except Exception as error:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
+#         ) from error
